@@ -1,5 +1,7 @@
 "use client";
 
+import type { CSSProperties } from "react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { callStageLabels, initialInterpretation, initialMetrics, initialTurns } from "@/lib/demo-data";
 import {
@@ -338,11 +340,21 @@ export default function HomePage() {
     <main className="page-shell">
       <section className="hero">
         <div className="hero-card">
-          <div className="eyebrow">Theme 12 • AI for 1092 Helpline</div>
-          <h1>Understand first. Respond second.</h1>
+          <div className="flag-ribbon" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="hero-topline">
+            <div className="eyebrow">Theme 12 | AI for 1092 Helpline</div>
+            <div className="chakra-mark" aria-label="Indian flag Ashoka Chakra motif">
+              <span />
+            </div>
+          </div>
+          <h1>Bharat listens. Bharat responds.</h1>
           <p>
-            This hackathon MVP acts as a multilingual call copilot for Karnataka’s 1092 helpline,
-            verifying the citizen’s issue before the human agent takes action.
+            A multilingual call copilot for India's 1092 helpline, built to understand the citizen's
+            issue, verify it clearly, and guide the human agent with confidence.
           </p>
           <div className="badge-row">
             <span className={getStagePill(callStage)}>{callStageLabels[callStage]}</span>
@@ -351,7 +363,12 @@ export default function HomePage() {
             </span>
             <span className="badge">{scoreToPercent(interpretation.confidence)} confidence</span>
           </div>
-          <div className="wave" />
+          <div className={`wave ${isRecording ? "wave-live" : ""}`} aria-hidden="true">
+            {Array.from({ length: 32 }, (_, index) => {
+              const height = 18 + (index % 9) * 6;
+              return <span key={index} style={{ "--bar": index, "--height": `${height}px` } as CSSProperties} />;
+            })}
+          </div>
           <div className="call-stage">{statusNote}</div>
           <div className="action-row">
             {!isRecording ? (
@@ -369,12 +386,21 @@ export default function HomePage() {
             <button className="ghost-btn" onClick={() => setAudioEnabled((value) => !value)}>
               {audioEnabled ? "Voice Playback On" : "Voice Playback Off"}
             </button>
+            <Link href="/chat" className="ghost-btn">
+              💬 Chat with AI
+            </Link>
+            <Link href="/voice" className="ghost-btn">
+              🎤 Voice Call
+            </Link>
           </div>
         </div>
 
         <div className="hero-side">
           <div className="metrics-card">
-            <h2>Impact Metrics</h2>
+            <div className="card-heading">
+              <h2>Impact Metrics</h2>
+              <span className="mini-flag" aria-hidden="true" />
+            </div>
             <div className="metrics-grid">
               <div>
                 <div className="section-title">Confirmed</div>
@@ -391,7 +417,10 @@ export default function HomePage() {
             </div>
           </div>
           <div className="timeline-card">
-            <h2>Demo Scenarios</h2>
+            <div className="card-heading">
+              <h2>Demo Scenarios</h2>
+              <span className="section-title">Quick launch</span>
+            </div>
             <div className="list">
               {demoScenarios.map((scenario) => (
                 <button key={scenario.id} className="ghost-btn" onClick={() => void useScenario(scenario)}>
