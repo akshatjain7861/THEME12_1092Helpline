@@ -1,0 +1,13 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/feedback/route": "/api/feedback",
+  "/api/interpret/route": "/api/interpret",
+  "/api/stt/route": "/api/stt",
+  "/api/tts/route": "/api/tts",
+  "/api/verify/route": "/api/verify",
+  "/api/chat/route": "/api/chat",
+  "/api/voice-chat/route": "/api/voice-chat",
+  "/chat/page": "/chat",
+  "/page": "/",
+  "/voice/page": "/voice"
+}
