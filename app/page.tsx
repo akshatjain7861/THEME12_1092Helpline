@@ -391,7 +391,7 @@ export default function HomePage() {
               <span>English</span>
               <span>Dialect AI</span>
             </div>
-            <h1>AI-assisted understanding for every 1092 call.</h1>
+            <h5>AI-assisted understanding for every 1092 call.</h5>
             <p>Operators get verified meaning, emotional context, and safe escalation controls before action is taken.</p>
           </div>
 

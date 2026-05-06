@@ -1707,7 +1707,7 @@ body::before {
 
 .login-bubbles {
   position: absolute;
-  top: 225px;
+  top: 303px;
   left: 50%;
   width: min(560px, 82%);
   transform: translateX(-50%);
