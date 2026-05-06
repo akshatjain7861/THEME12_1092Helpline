@@ -30,6 +30,7 @@ export default function VoiceChat() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -146,6 +147,14 @@ export default function VoiceChat() {
     }
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => null);
+      audioContextRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
     setWaveform(Array(30).fill(0));
   };
@@ -272,8 +281,14 @@ export default function VoiceChat() {
 
         if (ttsData.audioUrl) {
           const audio = new Audio(ttsData.audioUrl);
+          audioRef.current = audio;
           audio.onended = () => {
             setIsSpeaking(false);
+            audioRef.current = null;
+          };
+          audio.onerror = () => {
+            setIsSpeaking(false);
+            audioRef.current = null;
           };
           await audio.play();
           return;
@@ -287,6 +302,9 @@ export default function VoiceChat() {
       utterance.onend = () => {
         setIsSpeaking(false);
       };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+      };
       window.speechSynthesis.speak(utterance);
     } catch (error) {
       console.error("TTS Error:", error);
@@ -296,10 +314,19 @@ export default function VoiceChat() {
 
   const handleEndCall = () => {
     stopListening();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
     window.speechSynthesis.cancel();
+    setIsListening(false);
+    setIsProcessing(false);
+    setIsSpeaking(false);
     setCallDuration(0);
     setTranscript("");
     setError("");
+    setWaveform(Array(30).fill(0));
     setMessages([
       {
         id: "welcome",

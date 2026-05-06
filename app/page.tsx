@@ -81,6 +81,8 @@ export default function HomePage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [isSavingRecord, setIsSavingRecord] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const turnsRef = useRef<TranscriptTurn[]>(initialTurns);
@@ -351,6 +353,33 @@ export default function HomePage() {
     setStatusNote("Human agent took control of the call.");
   }
 
+  async function saveRecord() {
+    setIsSavingRecord(true);
+    setStatusNote("Saving record...");
+    try {
+      await persistSession("correct", false, {});
+      setStatusNote("Record saved successfully.");
+    } catch (error) {
+      setStatusNote("Failed to save record. Please try again.");
+    } finally {
+      setIsSavingRecord(false);
+    }
+  }
+
+  function downloadSummaryPdf() {
+    setIsDownloadingPdf(true);
+    const content = `1092 AI HELPLINE Call Summary\n\nIssue Summary: ${interpretation.issue_summary}\nLanguage: ${interpretation.language}\nEmotion: ${sentimentLabel}\nUrgency: ${urgencyLabel}\nAI Accuracy: ${confirmationStatus}\nResolution: ${interpretation.handover_recommended ? "Escalated to human agent" : "Verified for ticket creation"}\n\nAgent Notes: ${agentNotes || "N/A"}\n`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `1092-call-summary-${new Date().toISOString()}.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setStatusNote("Summary downloaded.");
+    setIsDownloadingPdf(false);
+  }
+
   function endCallToSummary() {
     setCallStage("confirmed");
     setStatusNote("Call ended. Summary is ready for supervisor review and escalation.");
@@ -412,14 +441,6 @@ export default function HomePage() {
             <label>
               Password
               <input type="password" defaultValue="secure-demo" />
-            </label>
-            <label>
-              Language Preference
-              <select defaultValue="kn">
-                <option value="kn">Kannada + English</option>
-                <option value="hi">Hindi + English</option>
-                <option value="en">English</option>
-              </select>
             </label>
             <button className="ops-primary" type="submit">Login to Live Dashboard</button>
             <small>Demo login is enabled for hackathon judging.</small>
@@ -690,8 +711,12 @@ export default function HomePage() {
             <h1>Call Summary</h1>
             <p>{agentSummary || interpretation.issue_summary}</p>
             <div className="ops-summary-actions">
-              <button className="ops-primary" onClick={() => void persistSession("correct", false, {})}>Save Record</button>
-              <button className="ops-secondary" onClick={() => setStatusNote("PDF export queued for the supervisor desk.")}>Download PDF</button>
+              <button className="ops-primary" onClick={() => void saveRecord()} disabled={isSavingRecord}>
+                {isSavingRecord ? "Saving..." : "Save Record"}
+              </button>
+              <button className="ops-secondary" onClick={downloadSummaryPdf} disabled={isDownloadingPdf}>
+                {isDownloadingPdf ? "Downloading..." : "Download PDF"}
+              </button>
               <button className="ops-takeover" onClick={markHumanTakeover}>Send Escalation</button>
             </div>
           </div>
