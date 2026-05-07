@@ -4,7 +4,7 @@ import { Interpretation, Sentiment, TranscriptTurn, Urgency } from "@/lib/types"
 const fallbackSentiments: Sentiment[] = ["calm", "confusion", "urgency", "distress", "anger", "fear"];
 const urgencyWords = ["urgent", "help", "immediately", "attack", "harassment", "scared", "fear", "danger"];
 
-function fallbackInterpretation(transcript: string): Interpretation {
+export function fallbackInterpretation(transcript: string): Interpretation {
   const lower = transcript.toLowerCase();
   const sentiment =
     fallbackSentiments.find((entry) => lower.includes(entry)) ??
@@ -31,6 +31,15 @@ function fallbackInterpretation(transcript: string): Interpretation {
     agent_question: "Can you confirm the exact location and immediate risk?",
     handover_recommended: confidence < 0.55 || urgency === "high" || sentiment === "distress"
   };
+}
+
+function isTemporaryModelError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /503|unavailable|high demand|overload|temporar|rate|quota/i.test(message);
+}
+
+async function wait(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function interpretTranscript(transcript: string, turns: TranscriptTurn[]) {
@@ -60,22 +69,41 @@ Latest citizen transcript:
 ${transcript}
 `;
 
-  const response = await client.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json"
-    }
-  });
+  let text = "";
 
-  const text = response.text?.trim();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await client.models.generateContent({
+        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      text = response.text?.trim() ?? "";
+      break;
+    } catch (error) {
+      if (!isTemporaryModelError(error) || attempt === 2) {
+        console.warn("Using local interpretation fallback after AI provider error:", error);
+        return fallbackInterpretation(transcript);
+      }
+
+      await wait(350 * (attempt + 1));
+    }
+  }
+
   if (!text) {
     return fallbackInterpretation(transcript);
   }
 
-  const parsed = JSON.parse(text) as Interpretation;
-  return {
-    ...parsed,
-    confidence: Math.max(0, Math.min(1, parsed.confidence))
-  };
+  try {
+    const parsed = JSON.parse(text) as Interpretation;
+    return {
+      ...parsed,
+      confidence: Math.max(0, Math.min(1, parsed.confidence))
+    };
+  } catch {
+    return fallbackInterpretation(transcript);
+  }
 }
